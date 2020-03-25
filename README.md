@@ -1,6 +1,6 @@
 # ESP32 OTA Web Updater
 
-ESP32 OTA Web Updater using esp_http_server.h
+ESP32 OTA web firmware and EEPROM eraser using esp_http_server.h
 
 03/25/2020 Ed Williams 
 
