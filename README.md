@@ -23,14 +23,14 @@ I use this sketch as a starting point for most of my sketches.
 The most important pieces for someone wanting to integrate the web OTA capability in
 their sketch is to include:
 
- #include <EEPROM.h>  // for erasing EEPROM ATO, assumes EEPROM is 512 bytes in size
- #include <Update.h>  // for flashing new firmware
+#include <EEPROM.h>  // for erasing EEPROM ATO, assumes EEPROM is 512 bytes in size
+#include <Update.h>  // for flashing new firmware
 
- #define uS_TO_S_FACTOR 1000000LL  // Conversion factor for micro seconds to seconds
- #define TIME_TO_SLEEP5S  5        // Time ESP32 will go to sleep (in seconds)
+#define uS_TO_S_FACTOR 1000000LL  // Conversion factor for micro seconds to seconds
+#define TIME_TO_SLEEP5S  5        // Time ESP32 will go to sleep (in seconds)
 
 and the GET and POST uri handler functions for /updatefirmware in the web server config:
 
- updatefirmware_get_handler
- updatefirmware_post_handler
+updatefirmware_get_handler
+updatefirmware_post_handler
 
