@@ -18,7 +18,7 @@ web server which includes the option to erase EEPROM. It also includes the follo
 Visit the web site <IP>/updatefirmware and enter the password to upload new firmware 
 to the ESP32. 
 
-![ESPOTAWebUpdater]https://github.com/mtnbkr88/ESP32OTAWebUpdater/blob/master/ESP32%20Firmware%20Updater.png
+![ESPOTAWebUpdater](https://github.com/mtnbkr88/ESP32OTAWebUpdater/blob/master/ESP32%20Firmware%20Updater.png)
 
 I use this sketch as a starting point for most of my sketches.
 
