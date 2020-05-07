@@ -1,11 +1,11 @@
 /**********************************************************************************
- * 03/25/2020 Edward Williams
- * This is a shell which includes a password protected Over-The-Air firmware update 
- * web server which includes the option to erase EEPROM. It also includes a fixed IP 
- * address, a major fail flashing led notice with sleep reboot, time set and mount 
- * of SD card. I use this as a starting point for all my sketches. Visit the web site
- * <IP>/updatefirmware and enter the password to upload new firmware to the ESP32. 
- * Compile using the "Default" Partition Scheme.
+ * 04/18/2020 Edward Williams
+ * This is a shell which includes an Over-The-Air firmware update web server which
+ * includes the option to erase EEPROM, fixed IP address, a major fail flashing led 
+ * notice with sleep reboot, time set and mount of SD card. I use this as a starting 
+ * point for all my sketches. Visit the web site <IP>/updatefirmware and enter the 
+ * password to upload new firmware to the ESP32. Compile using the "Default" Partition 
+ * Scheme.
  **********************************************************************************/
  
 // edit the below for local settings 
@@ -25,7 +25,7 @@ const char* TZ_INFO = "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00";
 const int SERVER_PORT = 80;  // port the main web server will listen on
 
 const char* appName = "ESP32OTAWebUpdater";
-const char* appVersion = "1.0.0";
+const char* appVersion = "1.0.1";
 const char* firmwareUpdatePassword = "87654321";
 
 // should not need to edit the below
@@ -190,32 +190,36 @@ function clear_status() {
 }
 
 function uploadfile(file) {
-  let xhr = new XMLHttpRequest();
-  document.getElementById('updatebutton').disabled = true;
-  document.getElementById('status').innerText = "Progress 0%%";
-  let eraseEEPROMvalue = document.getElementById('EraseEEPROM').checked;
-  let upwd = document.getElementById('upwd').value;
-  // track upload progress
-  xhr.upload.onprogress = function(event) {
-    if (event.lengthComputable) {
-      var per = event.loaded / event.total;
-      document.getElementById('status').innerText = "Progress " + Math.round(per*100) + "%%";
-    }
-  };
-  // track completion: both successful or not
-  xhr.onloadend = function() {
-    if (xhr.status == 200) {
-      document.getElementById('status').innerText = xhr.response;
-    } else {
-      document.getElementById('status').innerText = "Firmware update failed";
-    }
-    document.getElementById('updatebutton').disabled = false;
-    document.getElementById('upwd').value = "";
-  };
-  xhr.open("POST", "/updatefirmware");
-  xhr.setRequestHeader('EraseEEPROM', eraseEEPROMvalue);
-  xhr.setRequestHeader('UPwd', upwd);
-  xhr.send(file);
+  if ( !document.getElementById("updatefile").value ) {
+    alert( "Choose a valid firmware file" );
+  } else {
+    let xhr = new XMLHttpRequest();
+    document.getElementById('updatebutton').disabled = true;
+    document.getElementById('status').innerText = "Progress 0%%";
+    let eraseEEPROMvalue = document.getElementById('EraseEEPROM').checked;
+    let upwd = document.getElementById('upwd').value;
+    // track upload progress
+    xhr.upload.onprogress = function(event) {
+      if (event.lengthComputable) {
+        var per = event.loaded / event.total;
+        document.getElementById('status').innerText = "Progress " + Math.round(per*100) + "%%";
+      }
+    };
+    // track completion: both successful or not
+    xhr.onloadend = function() {
+      if (xhr.status == 200) {
+        document.getElementById('status').innerText = xhr.response;
+      } else {
+        document.getElementById('status').innerText = "Firmware update failed";
+      }
+      document.getElementById('updatebutton').disabled = false;
+      document.getElementById('upwd').value = "";
+    };
+    xhr.open("POST", "/updatefirmware");
+    xhr.setRequestHeader('EraseEEPROM', eraseEEPROMvalue);
+    xhr.setRequestHeader('UPwd', upwd);
+    xhr.send(file);
+  }
 }
 
 </script>
