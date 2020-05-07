@@ -11,8 +11,8 @@
 // edit the below for local settings 
 
 // wifi info
-const char* ssid = "WilliamsHome4";
-const char* password = "3103864271";
+const char* ssid = "YourSSID";
+const char* password = "YourSSIDPwd";
 // fixed IP info
 const uint8_t IP_Address[4] = {192, 168, 2, 30};
 const uint8_t IP_Gateway[4] = {192, 168, 2, 1};
@@ -26,7 +26,7 @@ const int SERVER_PORT = 80;  // port the main web server will listen on
 
 const char* appName = "ESP32OTAWebUpdater";
 const char* appVersion = "1.0.0";
-const char* firmwareUpdatePassword = "80543444";
+const char* firmwareUpdatePassword = "87654321";
 
 // should not need to edit the below
 
