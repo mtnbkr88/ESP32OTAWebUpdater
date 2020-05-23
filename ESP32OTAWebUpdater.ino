@@ -1,5 +1,5 @@
 /**********************************************************************************
- * 04/18/2020 Edward Williams
+ * 05/23/2020 Edward Williams
  * This is a shell which includes an Over-The-Air firmware update web server which
  * includes the option to erase EEPROM, fixed IP address, a major fail flashing led 
  * notice with sleep reboot, time set and mount of SD card. I use this as a starting 
@@ -25,7 +25,7 @@ const char* TZ_INFO = "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00";
 const int SERVER_PORT = 80;  // port the main web server will listen on
 
 const char* appName = "ESP32OTAWebUpdater";
-const char* appVersion = "1.0.1";
+const char* appVersion = "1.0.2";
 const char* firmwareUpdatePassword = "87654321";
 
 // should not need to edit the below
@@ -34,6 +34,8 @@ const char* firmwareUpdatePassword = "87654321";
 httpd_handle_t webserver_httpd = NULL;   
 
 #include <WiFi.h>
+
+WiFiEventId_t eventID;
 
 #include "soc/soc.h"  //disable brownout problems
 #include "soc/rtc_cntl_reg.h"  //disable brownout problems
@@ -109,7 +111,8 @@ bool init_wifi()
   IPAddress primaryDNS(IP_PrimaryDNS); // optional
   IPAddress secondaryDNS(IP_SecondaryDNS); // optional
 
-  WiFi.persistent(false);
+  //WiFi.persistent(false);
+  
   WiFi.mode(WIFI_STA);
 
   if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
@@ -117,9 +120,19 @@ bool init_wifi()
     major_fail();
   }
 
+  WiFi.setSleep(false);  // turn off wifi power saving, makes response MUCH faster
+  
   WiFi.printDiag(Serial);
 
+  // uncomment the below to use DHCP
+  //WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // workaround for bug in WiFi class
+
   WiFi.begin(ssid, password);
+  
+  char hostname[12];
+  sprintf( hostname, "ESP32CAM%d", IP_Address[3] );
+  WiFi.setHostname(hostname);  // only effective when using DHCP
+
   while (WiFi.status() != WL_CONNECTED ) {
     delay(500);
     Serial.print(".");
@@ -422,6 +435,18 @@ void setup() {
   pinMode(33, OUTPUT);    // little red led on back of chip
   digitalWrite(33, LOW);  // turn on the red LED on the back of chip
 
+  // setup event watcher to catch if wifi disconnects
+  eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+    Serial.print("WiFi lost connection. Reason: ");
+    Serial.println(info.disconnected.reason);
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("*** connected/disconnected issue!   WiFi disconnected ???...");
+      WiFi.disconnect();
+    } else {
+      Serial.println("*** WiFi disconnected ???...");
+    }
+  }, WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
+
   if (init_wifi()) { // Connected to WiFi
     Serial.println("Internet connected");
 
@@ -464,5 +489,10 @@ void setup() {
 // 
 
 void loop() {
+
+  if (WiFi.status() != WL_CONNECTED) {
+    init_wifi();
+    Serial.println("***** WiFi reconnect *****");
+  }
 
 }
