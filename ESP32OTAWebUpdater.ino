@@ -1,5 +1,5 @@
 /**********************************************************************************
- * 05/31/2020 Edward Williams
+ * 06/20/2020 Edward Williams
  * This is a shell which includes an Over-The-Air firmware update web server which
  * includes the option to erase EEPROM, fixed IP address, a major fail flashing led 
  * notice with sleep reboot, time set and mount of SD card. I use this as a starting 
@@ -25,7 +25,7 @@ const char* TZ_INFO = "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00";
 const int SERVER_PORT = 80;  // port the main web server will listen on
 
 const char* appName = "ESP32OTAWebUpdater";
-const char* appVersion = "1.0.3";
+const char* appVersion = "1.0.5";
 const char* firmwareUpdatePassword = "87654321";
 
 // should not need to edit the below
@@ -120,7 +120,7 @@ bool init_wifi()
     major_fail();
   }
 
-  WiFi.setSleep(false);  // turn off wifi power saving, makes response MUCH faster
+  //WiFi.setSleep(false);  // turn off wifi power saving, makes response MUCH faster
   
   WiFi.printDiag(Serial);
 
@@ -180,7 +180,7 @@ void init_time() {
 }
 
 
-char the_page[2000];  // used to hold complete response page before its sent to browser
+char * the_page = NULL;  // used to hold complete response page before its sent to browser
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
@@ -423,6 +423,62 @@ static esp_err_t init_sdcard()
 }
 */
 
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// idle_task0() - used to calculate system load on CPU0 (run at priority 0)
+//
+static unsigned long idle_cnt0 = 0LL;
+
+static void idle_task0(void *parm) {
+  while(1==1) {
+    int64_t now = esp_timer_get_time();     // time anchor
+    vTaskDelay(0 / portTICK_RATE_MS);
+    int64_t now2 = esp_timer_get_time();
+    idle_cnt0 += (now2 - now) / 1000;        // diff
+  }
+}
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// idle_task1() - used to calculate system load on CPU1 (run at priority 0)
+//
+static unsigned long idle_cnt1 = 0LL;
+
+static void idle_task1(void *parm) {
+  while(1==1) {
+    int64_t now = esp_timer_get_time();     // time anchor
+    vTaskDelay(0 / portTICK_RATE_MS);
+    int64_t now2 = esp_timer_get_time();
+    idle_cnt1 += (now2 - now) / 1000;        // diff
+  }
+}
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// mon_task() - used to display system load (run at priority 10)
+//
+static int mon_task_freq = 60;  // how often mon_task will wake in seconds
+
+static void mon_task(void *parm) {
+  while(1==1) {
+    float new_cnt0 =  (float)idle_cnt0;    // Save the count for printing it ...
+    float new_cnt1 =  (float)idle_cnt1;    // Save the count for printing it ...
+        
+    // Compensate for the 100 ms delay artifact: 900 ms = 100%
+    float cpu_percent0 = ((99.9 / 90.) * new_cnt0) / (mon_task_freq * 10);
+    float cpu_percent1 = ((99.9 / 90.) * new_cnt1) / (mon_task_freq * 10);
+    printf("Load (CPU0, CPU1): %.0f%%, %.0f%%\n", 100 - cpu_percent0, 
+      100 - cpu_percent1); fflush(stdout);
+    idle_cnt0 = 0;                        // Reset variable
+    idle_cnt1 = 0;                        // Reset variable
+    vTaskDelay((mon_task_freq * 1000) / portTICK_RATE_MS);
+  }
+}
+
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 // 
@@ -473,6 +529,17 @@ void setup() {
   }
 */
 
+  //uncomment the section below to report CPU load every 60 seconds
+/*
+  // create tasks for monitoring system load  
+  xTaskCreatePinnedToCore(idle_task0, "idle_task0", 1024 * 2, NULL,  0, NULL, 0);
+  xTaskCreatePinnedToCore(idle_task1, "idle_task1", 1024 * 2, NULL,  0, NULL, 1);
+  xTaskCreate(mon_task, "mon_task", 1024 * 2, NULL, 10, NULL);
+*/
+
+  // allocate PSRAM for holding web page content before sending
+  the_page = (char*) heap_caps_calloc(8000, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
   startWebServer();
 
   digitalWrite(33, HIGH);  // turn off the red LED on the back of chip
@@ -487,12 +554,17 @@ void setup() {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 // 
+unsigned long last_wakeup_1sec = 0;
 
 void loop() {
 
-  if (WiFi.status() != WL_CONNECTED) {
-    init_wifi();
-    Serial.println("***** WiFi reconnect *****");
+  if ( (millis() - last_wakeup_1sec) > 1000 ) {       // 1 second
+    last_wakeup_1sec = millis();
+
+    if (WiFi.status() != WL_CONNECTED) {
+      init_wifi();
+      Serial.println("***** WiFi reconnect *****");
+    }
   }
 
   delay(200);
