@@ -1,5 +1,5 @@
 /**********************************************************************************
- * 06/20/2020 Edward Williams
+ * 06/21/2020 Edward Williams
  * This is a shell which includes an Over-The-Air firmware update web server which
  * includes the option to erase EEPROM, fixed IP address, a major fail flashing led 
  * notice with sleep reboot, time set and mount of SD card. I use this as a starting 
@@ -25,7 +25,7 @@ const char* TZ_INFO = "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00";
 const int SERVER_PORT = 80;  // port the main web server will listen on
 
 const char* appName = "ESP32OTAWebUpdater";
-const char* appVersion = "1.0.5";
+const char* appVersion = "1.0.6";
 const char* firmwareUpdatePassword = "87654321";
 
 // should not need to edit the below
@@ -512,7 +512,6 @@ void setup() {
     // set timezone
     setenv("TZ", TZ_INFO, 1); 
     tzset();
-    delay(1000);
     time(&now);
     localtime_r(&now, &timeinfo);
 
