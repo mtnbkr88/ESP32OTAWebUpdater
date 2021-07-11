@@ -1,11 +1,12 @@
 # ESP32 OTA Web Updater
 
-ESP32 OTA web firmware and EEPROM eraser using esp_http_server.h
+ESP32 OTA web firmware and EEPROM/Preferences eraser using esp_http_server.h
 
-03/25/2020 Ed Williams 
+07/11/2021 Ed Williams 
 
 This is a shell which includes a password protected Over-The-Air firmware update 
-web server which includes the option to erase EEPROM. It also includes the following:
+web server which includes the option to erase EEPROM/Preferences. It also includes 
+the following:
 
   - Web implementation is based on esp_http_server.h.
   - The use of a static IP address.
@@ -27,6 +28,9 @@ their sketch is to include:
 
 #include <EEPROM.h>  // for erasing EEPROM ATO, assumes EEPROM is 512 bytes in size  
 #include <Update.h>  // for flashing new firmware  
+
+#include <Preferences.h>  // for erasing preferences in the my_app namespace
+Preferences preferences;
 
 #define uS_TO_S_FACTOR 1000000LL  // Conversion factor for micro seconds to seconds  
 #define TIME_TO_SLEEP5S  5        // Time ESP32 will go to sleep (in seconds)  
