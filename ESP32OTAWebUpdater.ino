@@ -1,11 +1,11 @@
 /**********************************************************************************
- * 06/21/2020 Edward Williams
+ * 07/11/2021 Edward Williams
  * This is a shell which includes an Over-The-Air firmware update web server which
- * includes the option to erase EEPROM, fixed IP address, a major fail flashing led 
- * notice with sleep reboot, time set and mount of SD card. I use this as a starting 
- * point for all my sketches. Visit the web site <IP>/updatefirmware and enter the 
- * password to upload new firmware to the ESP32. Compile using the "Default" Partition 
- * Scheme.
+ * includes the option to erase EEPROM and preferences, fixed IP address, a major 
+ * fail flashing led notice with sleep reboot, time set and mount of SD card. I use 
+ * this as a starting point for all my sketches. Visit the web site <IP>/updatefirmware 
+ * and enter the password to upload new firmware to the ESP32. Compile using the 
+ * "Default" Partition Scheme.
  **********************************************************************************/
  
 // edit the below for local settings 
@@ -25,7 +25,7 @@ const char* TZ_INFO = "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00";
 const int SERVER_PORT = 80;  // port the main web server will listen on
 
 const char* appName = "ESP32OTAWebUpdater";
-const char* appVersion = "1.0.6";
+const char* appVersion = "1.0.7";
 const char* firmwareUpdatePassword = "87654321";
 
 // should not need to edit the below
@@ -48,6 +48,9 @@ time_t now;
 
 #include <EEPROM.h>  // for erasing EEPROM ATO, assumes EEPROM is 512 bytes in size
 #include <Update.h>  // for flashing new firmware
+
+#include <Preferences.h>  // for erasing preferences in the my_app namespace
+Preferences preferences;
 
 #define uS_TO_S_FACTOR 1000000LL  // Conversion factor for micro seconds to seconds
 #define TIME_TO_SLEEP5S  5        // Time ESP32 will go to sleep (in seconds)
@@ -244,7 +247,7 @@ Select an ESP32 firmware file (.bin) to update the ESP32 firmware<br><br>
 
 <table>
 <tr><td align="center"><input type="file" id="updatefile" accept=".bin" onclick="clear_status();"><br><br></td></tr>
-<tr><td align="center"><input type="checkbox" id="EraseEEPROM" onclick="clear_status();"> Erase EEPROM<br><br></td></tr>
+<tr><td align="center"><input type="checkbox" id="EraseEEPROM" onclick="clear_status();"> Erase EEPROM/Preferences<br><br></td></tr>
 <tr><td align="center">Update Password <input type="password" id="upwd" maxlength="20"><br><br></td></tr>
 <tr><td align="center"><input type="button" id="updatebutton" onclick="uploadfile(updatefile.files[0]);" value="Update"><br><br></td></tr>
 <tr><td align="center"><div id="status"> &nbsp; </div><br><br></td></tr>
@@ -277,7 +280,7 @@ static esp_err_t updatefirmware_post_handler(httpd_req_t *req) {
 
   char eraseEeprom[10];
   httpd_req_get_hdr_value_str(req, "EraseEEPROM", eraseEeprom, sizeof(eraseEeprom));
-  Serial.println((String) "EraseEEPROM " + eraseEeprom );
+  Serial.println((String) "EraseEEPROM/Preferences " + eraseEeprom );
   char upwd[20];
   httpd_req_get_hdr_value_str(req, "UPwd", upwd, sizeof(upwd));
   Serial.println((String) "Update password " + upwd );
@@ -328,10 +331,10 @@ static esp_err_t updatefirmware_post_handler(httpd_req_t *req) {
       EEPROM.end();
       EEPROM.begin(512);
       for (int i = 0 ; i < 512 ; i++) {
-        EEPROM.write(i, 0);  // set all EEPROM memory to 0
+        EEPROM.write(i, 0xFF);  // set all EEPROM memory to FF
       }
       EEPROM.end();
-      strcpy(the_page, "Firmware update and EEPROM erase successful - Rebooting");
+      strcpy(the_page, "Firmware update and EEPROM/Preferences erase successful - Rebooting");
     } else {
       strcpy(the_page, "Firmware update successful - Rebooting");
     }
